@@ -1,5 +1,7 @@
 var express = require('express');
 
+var mdAutenticacion = require('../middlewares/autenticacion');
+
 var app = express();
 var bcrypt = require('bcryptjs');
 
@@ -36,14 +38,19 @@ app.get('/', (req, res, next) => {
         });
 
     });
-
-
 });
+
+
+
+// ====================================
+// Verificar Token
+// ====================================
+
 
 // ====================================
 // Actualizar usuario
 // ====================================
-app.put('/:id', ( req, res) => {
+app.put('/:id',mdAutenticacion.verificaToken, ( req, res) => {
 
     var id = req.params.id;
     var body = req.body;
@@ -102,7 +109,7 @@ app.put('/:id', ( req, res) => {
 // Crear usuario
 // ====================================
 
-app.post('/', (req, res)=>{
+app.post('/', mdAutenticacion.verificaToken, (req, res)=>{
 
     var body = req.body;
 
@@ -113,6 +120,7 @@ app.post('/', (req, res)=>{
        img: body.img,
        role: body.role
     });
+
 
     usuario.save( (err, usuarioGuardado) =>{
         if (err) {
@@ -127,10 +135,48 @@ app.post('/', (req, res)=>{
         res.status(201).json({
 
             ok: true,
-            usuario: usuarioGuardado
+            usuario: usuarioGuardado,
+            usuarioToken: req.usuario
 
         });
 
+    });
+});
+
+
+
+// ====================================
+// Borrar usuario
+// ====================================
+app.delete('/:id', mdAutenticacion.verificaToken, (req,res) => {
+
+    var id = req.params.id;
+
+    Usuario.findByIdAndRemove(id, ( err, usuarioBorrado)=>{
+        if (err) {
+            return res.status(500).json({
+
+                ok: false,
+                mensaje: 'Error al borrrar usuario',
+                errors: err
+            });
+        }
+
+        if (!usuarioBorrado) {
+                    return res.status(400).json({
+
+                        ok: false,
+                        mensaje: 'No existe ningun usuario con ese Id',
+                        errors: {mensaje: 'No existe ningun usuario con ese Id'}
+                    });
+                }
+
+        res.status(201).json({
+
+            ok: true,
+            usuario: usuarioBorrado
+
+        });
     });
 });
 
